@@ -248,10 +248,18 @@ HTTP2 is default.
    2.1. write service
    2.2. write servers
    2.3. clients to communicate services via server.
+............................................................................................
+Lab Req:
+
+1.JDK 11
+$ java --version
+2.Maven
+$ mvn --version
+3.docker 
 
    
-
-
+setup project
+mvn archetype:generate -DgroupId=com.example.grpc  -DartifactId=grpc-gettingstarted-app  -DarchetypeArtifactId=maven-archetype-quickstart  -DinteractiveMode=false
 
 
 
