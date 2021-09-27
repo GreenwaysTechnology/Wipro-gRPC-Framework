@@ -1,0 +1,265 @@
+				gRpc - What is it -RPC Framework
+..............................................................................................
+				Distributed Application Development
+..............................................................................................
+
+There are two design patterns
+
+1.monolithic
+   -If you take java application
+
+Domain - ecommerce
+ modules - order,payment,product,cart
+design application
+  -select tech -  java,jee(spring),database -mysql
+  -start building app based on domain models
+   -high level design,low level desing
+
+-deveploment 
+  Application is collection of modules(maven multi module,packages,folders and files)
+ each module is collection of classes - objects
+
+Object:
+An Object may represent any thing.
+
+An Object may represent called "entity" -  which carries data
+An Object represent biz process "service" - which carries biz logic
+
+Since app is collection of objects , each object has to collobrate(communication) with other objects
+........................................&&&&&&............................................... 
+					Object Relationship
+.............................................................................................
+
+1.has-a  -composition  - dependency 
+   entity composition - aggreation.
+   service composition -  in order to establish object communications
+2.is-a
+   inheritance - sharing code across multiple classes
+.............................................................................................
+			        API -Application Programming interface
+                                           Procedure 
+.............................................................................................
+What is api?
+  API is the term introduced to represent applications to talk each each other.
+
+What is procedure?
+  It is function/method to represent some "biz/system" process
+
+api is modern term to represent procedure.
+
+The term procedure introduced in mainframes , c language.
+
+The api introduced after oo programming languages - c++,java
+..............................................................................................
+					Procedure call
+.............................................................................................
+
+Calling method/function from the another method / function
+
+void calculate(a,b){ 
+ int res=add(a,b);
+}
+
+int add(a,b){
+   //compute
+}
+...........................................................................................
+			 Object Communication -  Procedure calls(method calls)
+
+class OrderService{
+   //has-a
+   private InventoryService inventory;
+  ....
+  void placeOrder(){ 
+	inventory.updateInventory(payload)
+  }
+}
+class InventoryService{
+  void updateInventory(input){
+
+ }
+}
+..............................................................................................
+				
+Types of Procedures:
+
+1.local
+   
+2.remote
+
+runtime/execution env:
+
+if you take java -  jre/jvm
+
+every runtime is process, each process has its own memory address,procee id
+
+if methods are called on single process , we call local object communication.
+............................................................................................
+				 RPC - API Design Patterns
+...........................................................................................
+
+In the beginning, there was industry standard rpc framework - CORBA
+
+The Common Object Request Broker Architecture (CORBA) is a standard defined by the Object Management Group (OMG) that enables software components written in multiple computer languages and running on multiple computers to work together.
+
+DCOM -  Built by microsoft for micro distributed rpc.
+
+..........................................................................................
+				Lightweight technology, open source
+
+RMI -  Remote Method Invocation
+ written in java, lightweight  uses rmi protocal,but it was not language independant.
+ it was not industry ready.
+
+
+EJB - Written on top of rmi and took idea from corba.
+
+EJB Had lot of drawbacks
+............................................................................................. 
+ 					Internet based RPC - HTTP Driven RPC
+.............................................................................................
+
+WebServices:
+ It is a remote program, having api , communicated via http protocal , transfer data
+
+SOAP Based:
+ it is similar to legacy rpc but communicated over soap over http,transfer xml based data.
+
+REST: 
+
+ It is also RPC but only works with http, carries multiple data format,json was understood
+light models
+
+
+SOA Architectures:
+ based on xml distributed programming
+..............................................................................................
+				Microservices and API Design
+.............................................................................................
+
+1.REST API 
+   -easy to use/develop
+ -what if my app is using multiple languages
+    RPC
+
+Drawbacks of REST/HTTP protocal.
+
+REST arch built on the top of "http1.1" protocal version.
+
+
+1.multi request-reponse cycle
+   in every req-res - tcp connection is created
+
+2.Headers are plain text which takes lot of space
+● HTTP is stateless
+	○ Headers are sent in every request
+	○ Carries info like Cookie
+	○ Plain text - relatively large in size
+	○ Can not be compressed
+
+3.Serialization & Deserialization
+   since http1.1 send always text, not binary which are speedy.
+
+
+4.API Contract
+   There is no api contract (strongly typed) which makes confussion among applications.
+
+5.Client SDK
+   There is no proper client sdk to process http messages.
+...........................................................................................
+					Google and http Protocal
+............................................................................................
+
+Google started a project called SPDY (pronounced "speedy") is a deprecated open-specification communication protocol that was developed primarily at Google for transporting web content.[1] SPDY manipulates HTTP traffic
+
+later spdy was opensourced named "HTTP/2"
+
+SPDY became the basis for HTTP/2 specification
+
+Why?
+-tcp multiplxing -  non blocking arch
+-Binary
+-Header Compression
+-Flow Control -Streaming
+............................................................................................
+			RPC - Framework alternate to REST based design
+............................................................................................
+
+Google has  started working on RPC systems more than 15 years from now , for service communicaitons.
+
+Project Name 
+Stubby
+● RPC Framework from Google
+● 15 years
+● 10 billions reqs / sec!!!!
+● Cross-platform
+............................................................................................
+● Tightly coupled with infrastructure
+............................................................................................
+				gRPC 
+
+● Developed at Google
+● Inspired by Stubby
+● Released in 2016
+● Adopted by
+○ Netflix
+○ Microsoft
+● Belongs to CNCF
+...........................................................................................
+				Why gRPC
+
+HTTP2 is default.
+○ Binary
+○ Multiplexing
+○ Flow-control
+● Non-blocking, Streaming bindings
+● Protobuf
+○ Strict Typing
+○ DTO
+○ Service definitions
+○ Language-agnostic
+○ Auto-generated bindings for multiple languages
+● Great for mobile apps
+..............................................................................................
+					ProtoBuff-Protocol Buffers
+..............................................................................................
+
+
+● IDL (interface description language) for API
+● Platform neutral
+● Language neutral
+● Serializing/Deserializing structured data
+● Very Fast / Optimized for interservices communication
+● Provides client libraries automatically for many languages!
+○ Java
+○ C++
+○ Javascript
+○ Go
+○ Ruby
+○ C#
+○ Python
+............................................................................................
+					Steps to Build gRPC- api style services
+.............................................................................................
+
+1.Design Api using ProtoBuff language
+
+2.Pick your language for writing services - java
+   2.1. write service
+   2.2. write servers
+   2.3. clients to communicate services via server.
+
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
