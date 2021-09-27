@@ -1,0 +1,12 @@
+//proto buff language version ; if dont, default version is 2
+syntax = "proto3";
+
+//type definition ; in java which is represented as entity class
+message Person {
+  //fields of the entity
+  // string is type
+  //name is field(variable)
+  //1 is identifier
+  string name = 1;
+  int32 age = 2;
+}
