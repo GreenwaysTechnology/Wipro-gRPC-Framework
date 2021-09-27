@@ -1,6 +1,11 @@
 //proto buff language version ; if dont, default version is 2
 syntax = "proto3";
 
+//option
+option java_multiple_files = true;
+//package
+option java_package = "com.wipro.models";
+
 //type definition ; in java which is represented as entity class
 message Person {
   //fields of the entity
