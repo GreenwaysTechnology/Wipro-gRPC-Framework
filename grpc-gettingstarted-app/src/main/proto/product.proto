@@ -1,0 +1,11 @@
+syntax = "proto3";
+//import wrappers
+import "google/protobuf/wrappers.proto";
+option java_multiple_files = true;
+option java_package = "com.wipro.models";
+
+message Product {
+  google.protobuf.Int32Value id = 1;
+  google.protobuf.FloatValue price=2;
+  string name=3;
+}

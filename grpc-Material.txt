@@ -144,7 +144,7 @@ SOA Architectures:
 
 Drawbacks of REST/HTTP protocal.
 
-REST arch built on the top of "http1.1" protocal version.
+REST arch built on the top of "http 1.1" protocal version.
 
 
 1.multi request-reponse cycle
@@ -435,12 +435,572 @@ public class PersonEnityMain {
     }
 }
 .....................*********.............................................................
+				ProtoBuff Lanaguage				
+.............................................................................................
+
+Message Fundamentals
+Service Definitions
+
+Testing Two proto generated instance are equals and its hashcode.
+
+package com.example.grpc;
+
+import com.wipro.models.Person;
+
+public class ProtoEqualsTest {
+    public static void main(String[] args) {
+        Person person1 = Person.newBuilder().setName("Subramanian").setAge(18).build();
+        Person person2 = Person.newBuilder().setName("Subramanian").setAge(42).build();
+        System.out.println(person1.equals(person2));
+        System.out.println(person1.hashCode());
+        System.out.println(person2.hashCode());
+
+    }
+}
+..............................................................................................
+				Serialization and Deserialization
+..............................................................................................
+
+Serialization:
+ Converting object into someformat
+
+Source                                                     Target
+________________________________________________________________________
+ Object--  seralize it --send over network-------       deseralize---Object
+
+............................................................................ 
+                            protocal
+
+RMI 
+JVM							    JVM
+Source                                                      Target
+________________________________________________________________________
+ Java Object--  seralize it(binary)---send over network------- deseralize---java Object
+............................................................................ 
+                             RMI Protocal
 
 
+Webservices
+
+REST - JSON,XML.....
+
+JVM							    Python
+Source                                                      Target
+________________________________________________________________________
+ Java Object--  seralize it(JSON)---send over network------- deseralize---Python Object
+............................................................................ 
+				HTTP 1.1
 
 
+gRPC
+
+JVM							    Python
+Source                                                      Target
+________________________________________________________________________
+  Protobuff-----seralize it into binary------------------deseralize it
+............................................................................ 
+				HTTP/2
+
+How to seralize and deseralize the protobuff binary into file system?
+
+package com.example.grpc;
+
+import com.wipro.models.Person;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+public class SeralizationAndDeseralization {
+    public static void main(String[] args) {
+        Person person = Person.newBuilder().setName("Subramanian").setAge(18).build();
+        //File to store the binary.
+        Path path = Paths.get("person.ser");
+        try {
+            Files.write(path, person.toByteArray());
+            System.out.println("Serialized");
+
+            //Read Bytes from the disk/network
+            byte[] bytes = Files.readAllBytes(path);
+            //deseralize the object
+            Person parsedPerson = Person.parseFrom(bytes);
+            System.out.println("Deserialization done");
+            System.out.println(parsedPerson);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+}
+.............................................................................................
+			   Proto vs Json Performance Testing
+............................................................................................
+package com.example.grpc;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.wipro.models.Person;
+
+import java.io.IOException;
+
+public class ProtoBuffVsJsonTesting {
+    public static void main(String[] args) {
+        //Json Representation
+        JPerson jPerson = new JPerson();
+        jPerson.setAge(18);
+        jPerson.setName("Subramanian");
+
+        Runnable jsonProcessor = () -> {
+            //serialization and deserialization
+            ObjectMapper objectMapper = new ObjectMapper();
+            //serialization
+            try {
+                byte[] bytes = objectMapper.writeValueAsBytes(jPerson);
+                //deserialization
+                objectMapper.readValue(bytes, JPerson.class);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        };
+        //proto buff seralization
+        Runnable protoProcess = ()->{
+            Person person = Person.newBuilder().setName("Subramanian").setAge(18).build();
+            byte[] bytes = person.toByteArray();
+            try {
+                Person person1 = Person.parseFrom(bytes);
+            } catch (InvalidProtocolBufferException e) {
+                e.printStackTrace();
+            }
+
+        };
+
+        for (int i=0;i<5;i++) {
+            runPerformanceTest(jsonProcessor, "JSON");
+            runPerformanceTest(protoProcess, "PROTO");
+        }
 
 
+    }
 
+    private static void runPerformanceTest(Runnable runnable, String method) {
+        long time1 = System.currentTimeMillis();
+        for (long i = 0; i < 1_00_000; i++) {
+            runnable.run();
+        }
+        long time2 = System.currentTimeMillis();
+        long diff = time2 - time1;
+        System.out.println(method + " : " + diff + " ms ");
+
+    }
+}
+...............................................................................................				Complex Types-Composit Types
+..............................................................................................
+
+proto files
+//proto buff language version ; if dont, default version is 2
+syntax = "proto3";
+//option
+option java_multiple_files = true;
+//package
+option java_package = "com.wipro.models";
+
+message Address {
+  string street = 1;
+  string city = 2;
+  string state = 3;
+}
+
+//type definition ; in java which is represented as entity class
+message Person {
+  //fields of the entity
+  // string is type
+  //name is field(variable)
+  //1 is identifier
+  string name = 1;
+  int32  age = 2;
+  Address address = 3;
+
+}
+package com.example.grpc.types;
+
+import com.wipro.models.Address;
+import com.wipro.models.Person;
+
+public class ComplexType {
+    public static void main(String[] args) {
+        Address address = Address.newBuilder()
+                .setState("Tamil Nadu")
+                .setStreet("7th Street")
+                .setCity("Coimbatore")
+                .build();
+        Person person = Person.newBuilder()
+                .setName("Subramanian")
+                .setAge(18)
+                .setAddress(address)
+                .build();
+        System.out.println(person);
+    }
+}
+............................................................................................
+				Collecition types - repeated
+
+//proto buff language version ; if dont, default version is 2
+syntax = "proto3";
+//option
+option java_multiple_files = true;
+//package
+option java_package = "com.wipro.models";
+
+message Address {
+  string street = 1;
+  string city = 2;
+  string state = 3;
+}
+
+//type definition ; in java which is represented as entity class
+message Person {
+  //fields of the entity
+  // string is type
+  //name is field(variable)
+  //1 is identifier
+  string name = 1;
+  int32  age = 2;
+  Address address = 3;
+  repeated string skills = 4;
+
+}
+package com.example.grpc.types;
+
+import com.wipro.models.Address;
+import com.wipro.models.Person;
+
+import java.util.Arrays;
+
+public class CollectionMain {
+    public static void main(String[] args) {
+        Address address = Address.newBuilder()
+                .setState("Tamil Nadu")
+                .setStreet("7th Street")
+                .setCity("Coimbatore")
+                .build();
+        Person person = Person.newBuilder()
+                .setName("Subramanian")
+                .setAge(18)
+                .setAddress(address)
+                .addSkills("Java")
+                .addSkills("Javascript")
+                .addAllSkills(Arrays.asList("Microservices","gRPC"))
+                .build();
+        System.out.println(person);
+    }
+}
+.............................................................................................
+					Map-Type
+............................................................................................
+
+//proto buff language version ; if dont, default version is 2
+syntax = "proto3";
+//option
+option java_multiple_files = true;
+//package
+option java_package = "com.wipro.models";
+
+message Address {
+  string street = 1;
+  string city = 2;
+  string state = 3;
+}
+
+//type definition ; in java which is represented as entity class
+message Person {
+  //fields of the entity
+  // string is type
+  //name is field(variable)
+  //1 is identifier
+  string name = 1;
+  int32  age = 2;
+  Address address = 3;
+  repeated string skills = 4;
+  map<string,string> values=5;
+
+}
+package com.example.grpc.types;
+
+import com.wipro.models.Address;
+import com.wipro.models.Person;
+
+import java.util.Arrays;
+
+public class MapMain {
+    public static void main(String[] args) {
+        Address address = Address.newBuilder()
+                .setState("Tamil Nadu")
+                .setStreet("7th Street")
+                .setCity("Coimbatore")
+                .build();
+        Person person = Person.newBuilder()
+                .setName("Subramanian")
+                .setAge(18)
+                .setAddress(address)
+                .addSkills("Java")
+                .addSkills("Javascript")
+                .addAllSkills(Arrays.asList("Microservices","gRPC"))
+                .putValues("id","1")
+                .build();
+        System.out.println(person);
+    }
+}
+.............................................................................................
+					Enum
+
+//proto buff language version ; if dont, default version is 2
+syntax = "proto3";
+//option
+option java_multiple_files = true;
+//package
+option java_package = "com.wipro.models";
+
+message Address {
+  string street = 1;
+  string city = 2;
+  string state = 3;
+}
+
+enum Feedback {
+  UNKNOWN = 0; //default value
+  GOOD = 1 ;
+  BAD = 2;
+  VERYGOOD = 3;
+}
+
+//type definition ; in java which is represented as entity class
+message Person {
+  //fields of the entity
+  // string is type
+  //name is field(variable)
+  //1 is identifier
+  string name = 1;
+  int32  age = 2;
+  Address address = 3;
+  repeated string skills = 4;
+  map<string, string> values = 5;
+  Feedback feeback = 6;
+
+}
+package com.example.grpc.types;
+
+import com.wipro.models.Address;
+import com.wipro.models.Feedback;
+import com.wipro.models.Person;
+
+import java.util.Arrays;
+
+public class EnumMain {
+    public static void main(String[] args) {
+        Address address = Address.newBuilder()
+                .setState("Tamil Nadu")
+                .setStreet("7th Street")
+                .setCity("Coimbatore")
+                .build();
+        Person person = Person.newBuilder()
+                .setName("Subramanian")
+                .setAge(18)
+                .setAddress(address)
+                .addSkills("Java")
+                .addSkills("Javascript")
+                .addAllSkills(Arrays.asList("Microservices","gRPC"))
+                .putValues("id","1")
+                .setFeeback(Feedback.VERYGOOD)
+                .build();
+        System.out.println(person  + " " + person.getFeeback());
+
+    }
+}
+............................................................................................
+				 Default Values
+............................................................................................
+int32 / any number type ->0
+bool ->false
+string ->empty string
+enum ->first value
+repeated -> empty list
+map ->wrapper / empty map
+
+package com.example.grpc.types;
+
+import com.wipro.models.Person;
+
+public class DefaultValue {
+    public static void main(String[] args) {
+        Person person=Person.newBuilder().build();
+        System.out.println("Age : " + person.getAge());
+        System.out.println("FirstName : " + person.getName().trim());
+        System.out.println("Feeback : " + person.getFeeback());
+
+    }
+}
+..............................................................................................
+				Proto and Modularity
+............................................................................................
+			
+src/main/proto/common/address.proto
+
+
+syntax = "proto3";
+//option
+option java_multiple_files = true;
+//package
+option java_package = "com.wipro.models";
+
+message Address {
+  string street = 1;
+  string city = 2;
+  string state = 3;
+}
+
+...................
+src/main/proto/person.proto
+
+
+//proto buff language version ; if dont, default version is 2
+syntax = "proto3";
+
+//link other proto files
+import "common/address.proto";
+
+//option
+option java_multiple_files = true;
+//package
+option java_package = "com.wipro.models";
+
+/**
+message Address {
+  string street = 1;
+  string city = 2;
+  string state = 3;
+}
+**/
+enum Feedback {
+  UNKNOWN = 0; //default value
+  GOOD = 1 ;
+  BAD = 2;
+  VERYGOOD = 3;
+}
+
+//type definition ; in java which is represented as entity class
+message Person {
+  //fields of the entity
+  // string is type
+  //name is field(variable)
+  //1 is identifier
+  string name = 1;
+  int32  age = 2;
+  Address address = 3;
+  repeated string skills = 4;
+  map<string, string> values = 5;
+  Feedback feeback = 6;
+
+}
+.............................................................................................
+		    Hiding Multiple Implementation under one Type
+				Oneof
+.............................................................................................	
+
+syntax = "proto3";
+option java_multiple_files = true;
+option java_package = "com.wipro.models";
+
+message  EmailCredentials {
+  string email = 1;
+  string password = 2;
+}
+message  PhoneOTP {
+  int32  number = 1;
+  int32  code = 2;
+}
+message  Credentials {
+  oneof mode {
+    EmailCredentials emailMode = 1;
+    PhoneOTP phoneMode = 2;
+  }
+}
+package com.example.grpc.types;
+
+import com.wipro.models.Credentials;
+import com.wipro.models.EmailCredentials;
+import com.wipro.models.PhoneOTP;
+
+public class OneOfMain {
+    public static void main(String[] args) {
+        EmailCredentials emailCredentials = EmailCredentials.newBuilder()
+                .setEmail("admin@gmail.com")
+                .setPassword("admin")
+                .build();
+        PhoneOTP phoneOTP = PhoneOTP.newBuilder()
+                .setNumber(334334234)
+                .setCode(200)
+                .build();
+        Credentials credentials = Credentials.newBuilder()
+                .setPhoneMode(phoneOTP)
+                .build();
+        login(credentials);
+        credentials = Credentials.newBuilder()
+                .setEmailMode(emailCredentials)
+                .build();
+        login(credentials);
+    }
+
+    private static void login(Credentials credentials) {
+        System.out.println(credentials);
+        switch (credentials.getModeCase()) {
+            case EMAILMODE:
+                System.out.println(credentials.getEmailMode().getEmail());
+                break;
+            case PHONEMODE:
+                System.out.println(credentials.getPhoneMode().getNumber());
+                break;
+        }
+    }
+}
+.............................................................................................
+			Wrapper Types-Like Java wrappers -Integer,Double
+............................................................................................
+
+syntax = "proto3";
+//import wrappers
+import "google/protobuf/wrappers.proto";
+option java_multiple_files = true;
+option java_package = "com.wipro.models";
+
+message Product {
+  google.protobuf.Int32Value id = 1;
+  google.protobuf.FloatValue price=2;
+  string name=3;
+}
+
+package com.example.grpc.types;
+
+import com.google.protobuf.FloatValue;
+import com.google.protobuf.Int32Value;
+import com.wipro.models.Product;
+
+public class WrapperTypes {
+    public static void main(String[] args) {
+        Product product = Product.newBuilder()
+                .setId(Int32Value.newBuilder().setValue(1).build())
+                .setPrice(FloatValue.newBuilder().setValue(12.45f).build())
+                .setName("Phone")
+                .build();
+        System.out.println(product);
+    }
+}
+..............................................................................................
+				 Services
+.............................................................................................
 
 

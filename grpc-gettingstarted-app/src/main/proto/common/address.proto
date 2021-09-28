@@ -1,0 +1,12 @@
+
+syntax = "proto3";
+//option
+option java_multiple_files = true;
+//package
+option java_package = "com.wipro.models";
+
+message Address {
+  string street = 1;
+  string city = 2;
+  string state = 3;
+}

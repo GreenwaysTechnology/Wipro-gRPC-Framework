@@ -1,10 +1,27 @@
 //proto buff language version ; if dont, default version is 2
 syntax = "proto3";
 
+//link other proto files
+import "common/address.proto";
+
 //option
 option java_multiple_files = true;
 //package
 option java_package = "com.wipro.models";
+
+/**
+message Address {
+  string street = 1;
+  string city = 2;
+  string state = 3;
+}
+**/
+enum Feedback {
+  UNKNOWN = 0; //default value
+  GOOD = 1 ;
+  BAD = 2;
+  VERYGOOD = 3;
+}
 
 //type definition ; in java which is represented as entity class
 message Person {
@@ -13,5 +30,10 @@ message Person {
   //name is field(variable)
   //1 is identifier
   string name = 1;
-  int32 age = 2;
+  int32  age = 2;
+  Address address = 3;
+  repeated string skills = 4;
+  map<string, string> values = 5;
+  Feedback feeback = 6;
+
 }
