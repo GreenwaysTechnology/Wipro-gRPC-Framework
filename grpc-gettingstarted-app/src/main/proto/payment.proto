@@ -1,0 +1,12 @@
+syntax = "proto3";
+//to avoid conflict to refer PaymentMode; if we use any third party /other proto
+//file which has PaymentMode.
+package  com.wipro.payment;
+option java_multiple_files = true;
+//option java_package = "com.wipro.models";
+
+enum PaymentMode {
+  UNKNOWN = 0;
+  CREDITCARD = 1;
+  NETBANKING = 2;
+}

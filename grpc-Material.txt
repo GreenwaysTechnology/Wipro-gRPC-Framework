@@ -999,8 +999,621 @@ public class WrapperTypes {
         System.out.println(product);
     }
 }
+.............................................................................................
+				packages
+
+You can add an optional package specifier to a .proto file to prevent name clashes between protocol message types.
+
+src/main/newproduct.proto;
+
+syntax = "proto3";
+//import wrappers
+package  com.wipro.payment;
+option java_multiple_files = true;
+//option java_package = "com.wipro.models";
+
+enum PaymentMode {
+  UNKNOWN = 0;
+  CREDITCARD = 1;
+  NETBANKING = 2;
+}
+
+Here java_package is optional if you tell , then files to be generated inside option java_package else inside package.
+
+syntax = "proto3";
+//import wrappers
+import "google/protobuf/wrappers.proto";
+import "newproduct.proto";
+option java_multiple_files = true;
+option java_package = "com.wipro.models";
+
+message Product {
+  google.protobuf.Int32Value id = 1;
+  google.protobuf.FloatValue price=2;
+  string name=3;
+  com.wipro.payment.PaymentMode payment=4;
+}
+
+package com.example.grpc.types;
+
+import com.google.protobuf.FloatValue;
+import com.wipro.models.Product;
+import com.wipro.payment.PaymentMode;
+
+public class PackageMain {
+    public static void main(String[] args) {
+        Product product = Product.newBuilder()
+                .setPayment(PaymentMode.NETBANKING)
+                .build();
+        System.out.println(product);
+    }
+}
+
+............................................................................................
+				Nested Types - looks like inner classes in java
+
+You can define and use message types inside other message types, as in the following example – here the Result message is defined inside the SearchResponse message:
+
+syntax = "proto3";
+option java_multiple_files = true;
+option java_package = "com.wipro.models";
+
+message SearchResponse {
+  message Result {
+    string url = 1;
+    string title = 2;
+  }
+  Result results = 1;
+}
+message SomeOtherMessage {
+  SearchResponse.Result result = 1;
+}
+
+package com.example.grpc.types;
+
+import com.wipro.models.SearchResponse;
+
+public class NestedTypes {
+    public static void main(String[] args) {
+        SearchResponse searchResponse = SearchResponse
+                .newBuilder()
+                .setResults(SearchResponse.Result.newBuilder().setTitle("something").build())
+                .build();
+        System.out.println(searchResponse);
+    }
+}
+
 ..............................................................................................
 				 Services
 .............................................................................................
 
+Proto file contains
+
+Message Types
+
+Service Definitions
+..............................................................................................
+					Service Definitions -like REST Resource
+..............................................................................................
+
+Service is Object which defines api, which to be called by other services like normal method calls.
+
+gRPC is based on around the idea of defining  a service, metentioning the methods that can be called remotely with their parameters and return types.
+
+In gRPC provides an IDL (proto Buff) to define service definition and struture of payload.
+
+Types of Payload:
+1.Request payload
+    -sent by client/consumer service(caller)
+2.Response Payload
+   - sent by callee service(provider)
+
+gRPC service types:
+
+1.Unary RPC
+2.Server Streaming RPC
+3.Client Streaming RPC
+4.Bidirectional Streaming RPC
+
+Service communication Styles:
+
+1.Synchronous Style
+2.Asynchronous Style
+
+Streaming:
+.........
+ Sending and receiving data in chunks.
+..........................................................................................
+				Unary Service
+............................................................................................
+
+Steps:
+
+1.define proto service definition
+//proto buff language version ; if dont, default version is 2
+syntax = "proto3";
+//option
+option java_multiple_files = true;
+//package
+option java_package = "com.wipro.service";
+
+//message types
+message HelloRequest{
+  string name = 1;
+  repeated string hobbies = 2;
+}
+message HelloResponse {
+  string greeting = 1;
+}
+//service definition
+service  GreetingService {
+  //define rpc operation: Unary: Request-Reply - Fire and Forget -  HTTP - GET
+  rpc greeting(HelloRequest) returns (HelloResponse);
+}
+
+2. compile the code -  you can see the generated code.
+
+
+3.Write Service Implementation - provider
+package com.wipro.service.greeting;
+
+import com.wipro.service.GreetingServiceGrpc;
+import com.wipro.service.HelloRequest;
+import com.wipro.service.HelloResponse;
+import io.grpc.stub.StreamObserver;
+
+public class GreetingServiceImpl extends GreetingServiceGrpc.GreetingServiceImplBase {
+    @Override
+    public void greeting(HelloRequest request, StreamObserver<HelloResponse> responseObserver) {
+        //Service Biz logic
+        String name = request.getName();
+        //Response
+        HelloResponse response = HelloResponse.newBuilder().setGreeting("Hello " + name).build();
+        //writing response into channel
+        responseObserver.onNext(response);
+        //close the channel or ensure that the response has been committed
+        responseObserver.onCompleted();
+    }
+}
+
+3.Deploy the service on server - We need to create gRPC Server - like Web server
+
+
+package com.example.grpc.server;
+
+import com.wipro.service.greeting.GreetingServiceImpl;
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
+
+import java.io.IOException;
+
+public class GRPCServerMain {
+    public static void main(String[] args) {
+        Server server = ServerBuilder
+                .forPort(8080)
+                //deploy the service
+                .addService(new GreetingServiceImpl())
+                .build();
+        //start the server
+        try {
+            server.start();
+            System.out.println("gRPC Server is Ready!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        //Keep the main thread alive
+        try {
+            server.awaitTermination();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+........................................................................................
+					Test The Service
+..........................................................................................
+Client Program :
+https://github.com/uw-labs/bloomrpc/releases
+
+
+
+package com.example.grpc.client;
+
+import com.wipro.service.GreetingServiceGrpc;
+import com.wipro.service.HelloRequest;
+import com.wipro.service.HelloResponse;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+
+public class GreetingClientApp {
+    public static void main(String[] args) {
+        //Channel Object
+        ManagedChannel channel = ManagedChannelBuilder
+                .forTarget("localhost:8080")
+                .usePlaintext()// no need of ssl
+                .build();
+        //Stub Object : Stub is Client Proxy, which is handling all low communication
+        GreetingServiceGrpc.GreetingServiceBlockingStub stub = GreetingServiceGrpc.newBlockingStub(channel);
+        //Construct Request Payload
+        HelloRequest request = HelloRequest.newBuilder().setName("Ram").build();
+        //Invoke remote call - RPC and get server response
+        HelloResponse helloResponse = stub.greeting(request);
+        //log the response
+        System.out.println(helloResponse);
+        //close the channel
+        channel.shutdown();
+
+    }
+}
+.............................................................................................
+					Unary,Streaming
+..............................................................................................
+
+Banking App:
+
+-Unary Api
+//proto buff language version ; if dont, default version is 2
+syntax = "proto3";
+//option
+option java_multiple_files = true;
+//package
+option java_package = "com.wipro.service";
+
+message  BalanceCheckRequest{
+  int32 account_number = 1;
+}
+message Balance {
+  int32 amount = 1;
+}
+//Bank service
+service BankService {
+  //unary
+  rpc getBalance(BalanceCheckRequest) returns (Balance);
+}
+
+
+package com.wipro.service.bank;
+
+import com.wipro.service.Balance;
+import com.wipro.service.BalanceCheckRequest;
+import com.wipro.service.BankServiceGrpc;
+import io.grpc.stub.StreamObserver;
+
+public class BankServiceImpl extends BankServiceGrpc.BankServiceImplBase {
+    @Override
+    public void getBalance(BalanceCheckRequest request, StreamObserver<Balance> responseObserver) {
+        //sending
+        int accountNumber = request.getAccountNumber();
+        Balance balance = Balance.newBuilder().setAmount(accountNumber * 1000).build();
+        responseObserver.onNext(balance);
+        responseObserver.onCompleted();
+    }
+}
+.............................................................................................
+package com.example.grpc.client;
+
+import com.wipro.service.Balance;
+import com.wipro.service.BalanceCheckRequest;
+import com.wipro.service.BankServiceGrpc;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+
+public class BankUnaryClient {
+    public static void main(String[] args) {
+        ManagedChannel channel = ManagedChannelBuilder
+                .forTarget("localhost:8080")
+                .usePlaintext()// no need of ssl
+                .build();
+        BankServiceGrpc.BankServiceBlockingStub bankServiceBlockingStub = BankServiceGrpc.newBlockingStub(channel);
+        BalanceCheckRequest balanceRequest = BalanceCheckRequest.newBuilder().setAccountNumber(8).build();
+        Balance balance = bankServiceBlockingStub.getBalance(balanceRequest);
+        System.out.println(balance.getAmount());
+        //close the channel
+        channel.shutdown();
+    }
+}
+.............................................................................................					IN Memory Database
+.............................................................................................
+
+package com.example.grpc.util;
+
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+public class AccountDB {
+    //generate some account no and its balances
+    private final static Map<Integer, Integer> MAP = IntStream
+            .rangeClosed(1, 10)
+            .boxed()
+            .collect(Collectors.toMap(Function.identity(), value -> value * 10));
+
+    public static Integer getBalance(int accountNumber) {
+        return MAP.get(accountNumber);
+    }
+
+    public static Integer addBalance(int accountNumber, int amount) {
+        return MAP.computeIfPresent(accountNumber, (k, v) -> v + amount);
+    }
+
+    public static Integer deductBalance(int accountNumber, int amount) {
+        return MAP.computeIfPresent(accountNumber, (k, v) -> v - amount);
+    }
+}
+
+
+package com.wipro.service.bank;
+
+import com.example.grpc.util.AccountDB;
+import com.wipro.service.Balance;
+import com.wipro.service.BalanceCheckRequest;
+import com.wipro.service.BankServiceGrpc;
+import io.grpc.stub.StreamObserver;
+
+public class BankServiceImpl extends BankServiceGrpc.BankServiceImplBase {
+    @Override
+    public void getBalance(BalanceCheckRequest request, StreamObserver<Balance> responseObserver) {
+        //sending
+        int accountNumber = request.getAccountNumber();
+        //Balance balance = Balance.newBuilder().setAmount(accountNumber * 1000).build();
+        Balance balance = Balance.newBuilder().setAmount(AccountDB.getBalance(accountNumber)).build();
+        responseObserver.onNext(balance);
+        responseObserver.onCompleted();
+    }
+}
+
+
+
+package com.example.grpc.client;
+
+    import com.wipro.service.Balance;
+    import com.wipro.service.BalanceCheckRequest;
+    import com.wipro.service.BankServiceGrpc;
+    import io.grpc.ManagedChannel;
+    import io.grpc.ManagedChannelBuilder;
+
+    public class BankUnaryClient {
+        public static void main(String[] args) {
+            ManagedChannel channel = ManagedChannelBuilder
+                    .forTarget("localhost:8080")
+                    .usePlaintext()// no need of ssl
+                    .build();
+            BankServiceGrpc.BankServiceBlockingStub bankServiceBlockingStub = BankServiceGrpc.newBlockingStub(channel);
+            BalanceCheckRequest balanceRequest = BalanceCheckRequest.newBuilder().setAccountNumber(10).build();
+            Balance balance = bankServiceBlockingStub.getBalance(balanceRequest);
+            System.out.println("Balance Received-->" + balance.getAmount());
+            //close the channel
+            channel.shutdown();
+        }
+    }
+
+..............................................................................................
+				Nodejs Integration.
+
+const grpc = require('grpc')
+const protoloader = require('@grpc/proto-loader')
+
+const packageDef = protoloader.loadSync('proto/BankService.proto')
+const protoDesc = grpc.loadPackageDefinition(packageDef)
+
+const client = new protoDesc.BankService('localhost:8080', grpc.credentials.createInsecure())
+
+client.getBalance({accountNumber: 2}, (err, balance) => {
+    if(err){
+        console.error('something bad happened')
+    }else{
+        console.log('Received : ' + balance.amount)
+    }
+})
+
+BankService.proto
+//proto buff language version ; if dont, default version is 2
+syntax = "proto3";
+//option
+option java_multiple_files = true;
+//package
+option java_package = "com.wipro.service";
+
+message  BalanceCheckRequest{
+  int32 account_number = 1;
+}
+message Balance {
+  int32 amount = 1;
+}
+//Bank service
+service BankService {
+  //unary
+  rpc getBalance(BalanceCheckRequest) returns (Balance);
+}
+.............................................................................................
+                                   Server Streaming
+
+Use case : money withdrawal , i want to with draw money 10$ each of total 40$
+					
+//proto buff language version ; if dont, default version is 2
+syntax = "proto3";
+//option
+option java_multiple_files = true;
+//package
+option java_package = "com.wipro.service";
+
+message  BalanceCheckRequest{
+  int32 account_number = 1;
+}
+message Balance {
+  int32 amount = 1;
+}
+//WithDrawRequest
+message WithDrawRequest {
+  int32 account_number = 1;
+  int32 amount = 2;
+}
+//Money to be withdrawn
+message Money {
+  int32 money = 1;
+}
+//Bank service
+service BankService {
+  //unary
+  rpc getBalance(BalanceCheckRequest) returns (Balance);
+  //server streaming
+  rpc withdraw(WithDrawRequest) returns(stream Money);
+
+}
+package com.wipro.service.bank;
+
+import com.example.grpc.util.AccountDB;
+import com.wipro.service.*;
+import io.grpc.stub.StreamObserver;
+
+public class BankServiceImpl extends BankServiceGrpc.BankServiceImplBase {
+    @Override
+    public void getBalance(BalanceCheckRequest request, StreamObserver<Balance> responseObserver) {
+        //sending
+        int accountNumber = request.getAccountNumber();
+        //Balance balance = Balance.newBuilder().setAmount(accountNumber * 1000).build();
+        Balance balance = Balance.newBuilder().setAmount(AccountDB.getBalance(accountNumber)).build();
+        responseObserver.onNext(balance);
+        responseObserver.onCompleted();
+    }
+    //with draw logic
+
+    @Override
+    public void withdraw(WithDrawRequest request, StreamObserver<Money> responseObserver) {
+        int accountNumber = request.getAccountNumber();
+        int amount = request.getAmount();
+        int balance = AccountDB.getBalance(accountNumber);
+        //start sending money in chunks/stream
+        for (int i = 0; i < (amount / 10); i++) {
+            Money money = Money.newBuilder().setMoney(amount).build();
+            //streaming... calling onNext method n- no times
+            responseObserver.onNext(money);
+            //deduct  money from account
+            AccountDB.deductBalance(accountNumber, 10);
+
+            //simulate delay of sending money
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+        }
+        //stream completed ; inform that no more data
+        responseObserver.onCompleted();
+    }
+}
+..............................................................................................
+				 Streaming with Blocking Client Calls
+..............................................................................................
+
+package com.example.grpc.client;
+
+import com.wipro.service.BankServiceGrpc;
+import com.wipro.service.WithDrawRequest;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+
+public class BankingServerStreamingClient {
+
+
+    public static void main(String[] args) {
+
+        blockingStreaming();
+
+    }
+
+    private static void blockingStreaming() {
+        ManagedChannel channel = ManagedChannelBuilder
+                .forTarget("localhost:8080")
+                .usePlaintext()// no need of ssl
+                .build();
+        //Stub
+        BankServiceGrpc.BankServiceBlockingStub bankServiceBlockingStub = BankServiceGrpc.newBlockingStub(channel);
+        WithDrawRequest withdrawRequest = WithDrawRequest.newBuilder().setAccountNumber(7).setAmount(40).build();
+        System.out.println("start");
+        bankServiceBlockingStub.withdraw(withdrawRequest).forEachRemaining(money -> {
+            System.out.println("Received -->" + money.getMoney());
+        });
+
+        System.out.println("end");
+    }
+}
+.............................................................................................
+..............................................................................................
+		   Streaming with Non Blocking/Async Client Calls
+..............................................................................................
+package com.example.grpc.client;
+
+import com.google.common.util.concurrent.Uninterruptibles;
+import com.wipro.service.BankServiceGrpc;
+import com.wipro.service.Money;
+import com.wipro.service.WithDrawRequest;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.stub.StreamObserver;
+
+import java.util.concurrent.TimeUnit;
+
+public class BankingServerStreamingClient {
+
+
+    public static void main(String[] args) {
+
+        //blockingStreaming();
+        asyncStreaming();
+
+    }
+
+    private static void asyncStreaming() {
+        ManagedChannel channel = ManagedChannelBuilder
+                .forTarget("localhost:8080")
+                .usePlaintext()// no need of ssl
+                .build();
+        //NonBlocking Stub:Async Stub
+        BankServiceGrpc.BankServiceStub bankServiceStub = BankServiceGrpc.newStub(channel);
+
+        WithDrawRequest withdrawRequest = WithDrawRequest.newBuilder().setAccountNumber(7).setAmount(40).build();
+
+        System.out.println("Start");
+        //Nonblocking results to be emitted into callback interface
+        bankServiceStub.withdraw(withdrawRequest, new StreamObserver<Money>() {
+            @Override
+            public void onNext(Money money) {
+                System.out.println("Received-->" + money.getMoney());
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                System.out.println(throwable.getMessage());
+            }
+
+            @Override
+            public void onCompleted() {
+                System.out.println("Publisher has completed streaming");
+            }
+        });
+
+        System.out.println("End");
+        Uninterruptibles.sleepUninterruptibly(3, TimeUnit.SECONDS);
+
+    }
+
+    private static void blockingStreaming() {
+        ManagedChannel channel = ManagedChannelBuilder
+                .forTarget("localhost:8080")
+                .usePlaintext()// no need of ssl
+                .build();
+        //Stub
+        BankServiceGrpc.BankServiceBlockingStub bankServiceBlockingStub = BankServiceGrpc.newBlockingStub(channel);
+        WithDrawRequest withdrawRequest = WithDrawRequest.newBuilder().setAccountNumber(7).setAmount(40).build();
+        System.out.println("start");
+        bankServiceBlockingStub.withdraw(withdrawRequest).forEachRemaining(money -> {
+            System.out.println("Received -->" + money.getMoney());
+        });
+
+        System.out.println("end");
+    }
+}
 

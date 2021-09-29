@@ -1,0 +1,14 @@
+syntax = "proto3";
+option java_multiple_files = true;
+option java_package = "com.wipro.models";
+
+message SearchResponse {
+  message Result {
+    string url = 1;
+    string title = 2;
+  }
+  Result results = 1;
+}
+message SomeOtherMessage {
+  SearchResponse.Result result = 1;
+}

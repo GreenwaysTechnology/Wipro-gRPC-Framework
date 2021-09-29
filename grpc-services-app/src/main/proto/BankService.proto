@@ -1,0 +1,30 @@
+//proto buff language version ; if dont, default version is 2
+syntax = "proto3";
+//option
+option java_multiple_files = true;
+//package
+option java_package = "com.wipro.service";
+
+message  BalanceCheckRequest{
+  int32 account_number = 1;
+}
+message Balance {
+  int32 amount = 1;
+}
+//WithDrawRequest
+message WithDrawRequest {
+  int32 account_number = 1;
+  int32 amount = 2;
+}
+//Money to be withdrawn
+message Money {
+  int32 money = 1;
+}
+//Bank service
+service BankService {
+  //unary
+  rpc getBalance(BalanceCheckRequest) returns (Balance);
+  //server streaming
+  rpc withdraw(WithDrawRequest) returns(stream Money);
+
+}
