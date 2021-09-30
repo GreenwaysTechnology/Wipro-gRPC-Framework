@@ -13,9 +13,10 @@
                     .usePlaintext()// no need of ssl
                     .build();
             BankServiceGrpc.BankServiceBlockingStub bankServiceBlockingStub = BankServiceGrpc.newBlockingStub(channel);
+
             BalanceCheckRequest balanceRequest = BalanceCheckRequest.newBuilder().setAccountNumber(10).build();
             Balance balance = bankServiceBlockingStub.getBalance(balanceRequest);
-            System.out.println("Balance Received-->" + balance.getAmount());
+            System.out.println("Balance Received-->" + balance.getAmount() + " " + Thread.currentThread().getName());
             //close the channel
             channel.shutdown();
         }
