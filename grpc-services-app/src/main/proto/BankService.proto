@@ -20,11 +20,21 @@ message WithDrawRequest {
 message Money {
   int32 money = 1;
 }
+////////////////////////////////
+//client Streaming types
+message DepositRequest {
+  int32  account_number = 1;
+  int32 amount = 2;
+}
+
+//////
 //Bank service
 service BankService {
   //unary
   rpc getBalance(BalanceCheckRequest) returns (Balance);
   //server streaming
   rpc withdraw(WithDrawRequest) returns(stream Money);
+  //client streaming
+  rpc cashDeposit(stream DepositRequest) returns (Balance);
 
 }

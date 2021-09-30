@@ -1,26 +1,21 @@
-package com.example.grpc.server;
+package com.example.grpc.loadbalancing;
 
 import com.wipro.service.bank.BankServiceImpl;
-import com.wipro.service.bank.TransferService;
-import com.wipro.service.greeting.GreetingServiceImpl;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 
 import java.io.IOException;
 
-public class GRPCServerMain {
+public class GrpcServer2 {
     public static void main(String[] args) {
         Server server = ServerBuilder
-                .forPort(8080)
-                //deploy the service
-                .addService(new GreetingServiceImpl())
+                .forPort(7575)
                 .addService(new BankServiceImpl())
-                .addService(new TransferService())
                 .build();
         //start the server
         try {
             server.start();
-            System.out.println("gRPC Server is Ready!");
+            System.out.println("gRPC Server-2 is Ready!");
         } catch (IOException e) {
             e.printStackTrace();
         }

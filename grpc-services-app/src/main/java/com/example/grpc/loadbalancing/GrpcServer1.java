@@ -1,4 +1,4 @@
-package com.example.grpc.server;
+package com.example.grpc.loadbalancing;
 
 import com.wipro.service.bank.BankServiceImpl;
 import com.wipro.service.bank.TransferService;
@@ -8,10 +8,10 @@ import io.grpc.ServerBuilder;
 
 import java.io.IOException;
 
-public class GRPCServerMain {
+public class GrpcServer1 {
     public static void main(String[] args) {
         Server server = ServerBuilder
-                .forPort(8080)
+                .forPort(6565)
                 //deploy the service
                 .addService(new GreetingServiceImpl())
                 .addService(new BankServiceImpl())
@@ -20,7 +20,7 @@ public class GRPCServerMain {
         //start the server
         try {
             server.start();
-            System.out.println("gRPC Server is Ready!");
+            System.out.println("gRPC Server-1 is Ready!");
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -8,6 +8,7 @@ import io.grpc.stub.StreamObserver;
 public class GreetingServiceImpl extends GreetingServiceGrpc.GreetingServiceImplBase {
     @Override
     public void greeting(HelloRequest request, StreamObserver<HelloResponse> responseObserver) {
+        System.out.println("Call is Received");
         //Service Biz logic
         String name = request.getName();
         //Response
